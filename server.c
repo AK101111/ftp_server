@@ -13,6 +13,7 @@
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <unistd.h>
 
 #define DEBUG
 #define FAIL_ERR 1
@@ -38,9 +39,6 @@ int server_init(char* port_number, int *accept_socket_fd)
 	if(!port_number)
 		cleanup_error("NO PORT PROVIDED\n");
 
-	if(!socket_fd)
-		cleanup_error("NO SOCKET AVAILABLE\n");
-
 	socklen_t clilen;
 	int port_num = PARSE_INT(port_number);
 	/*AF_UNIX for unix, AF_INET for net.*/
@@ -54,15 +52,15 @@ int server_init(char* port_number, int *accept_socket_fd)
 		 host byte order, was so much easier in JAVA !!*/
 	server->sin_port = htons(port_num);
 	
-	if(bind(socket_fd, server, sizeof(struct sockaddr_in)) < 0)
+	if(bind(socket_fd, (struct sockaddr *)server, sizeof(struct sockaddr_in)) < 0)
 		cleanup_error("BINDING ERROR\n");
 
 	listen(socket_fd,4);
 	client = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
 	clilen = sizeof(client);
 
-  if((accept_socket_fd = accept(socket_fd, 
-                 								client, 
+  if((*accept_socket_fd = accept(socket_fd, 
+                 								(struct sockaddr *)client, 
                  								&clilen)) < 0)
  		cleanup_error("ERROR in accepting\n");
 	return 0;
@@ -81,21 +79,6 @@ void tokenize(char arr[], char *brr[])
   }
 }
 
-int start_server(int accept_fd)
-{
-	char buffer[256];
-	char *argv[10];
-	memset(buffer, 0, 256);
-	int read_code;
-	while(1){
-		if((read_code = read(accept_fd,buffer,255)) < 0)
-     	cleanup_error("ERROR Reading\n");
-    tokenize(buffer, argv);
-   	exec_command(argv, accept_fd);
-  }
-  return FAIL_ERR;
-}
-
 int exec_command(char *argv[], int outstream)
 {
 	pid_t pid;
@@ -112,6 +95,22 @@ int exec_command(char *argv[], int outstream)
     fprintf(stderr, "exec %s failed\n", argv[0]);
 	}
 	return FAIL_ERR;
+}
+
+int start_server(int accept_fd)
+{
+	char buffer[256];
+	char *argv[10];
+	memset(buffer, 0, 256);
+	int read_code;
+	while(1){
+		printf("hello\n");
+		if((read_code = read(accept_fd,buffer,255)) < 0)
+     	cleanup_error("ERROR Reading\n");
+    tokenize(buffer, argv);
+   	exec_command(argv, accept_fd);
+  }
+  return FAIL_ERR;
 }
 
 int main(int argc, char *argv[])
