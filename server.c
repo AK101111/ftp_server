@@ -16,7 +16,7 @@ int init_server(char *port_num)
 {
 	int port_num, socket_fd;
 	struct sockaddr_in *server, *client;
-	port_num = parse_to_int(port_num);i
+	port_num = parse_to_int(port_num);
 	
 	/*AF_UNIX for unix, AF_INET for net.*/
 	if((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
