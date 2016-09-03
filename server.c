@@ -34,8 +34,8 @@ void cleanup_error(char *error)
 
 int server_init(char* port_number, int *accept_socket_fd)
 {
-	int socket_fd;
-	struct sockaddr_in *server, *client;
+	int socket_fd, client_sock, read_size;
+	struct sockaddr_in server, client;
 	if(!port_number)
 		cleanup_error("NO PORT PROVIDED\n");
 
@@ -45,38 +45,45 @@ int server_init(char* port_number, int *accept_socket_fd)
 	if((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		cleanup_error("CANNOT OPEN SOCKET\n");
 	
-	server = (struct sockaddr_in*)calloc(1, sizeof(struct sockaddr_in));
-	server->sin_family = AF_INET;
-	server->sin_addr.s_addr = INADDR_ANY;
-	/* random c stuff, we actually have to change b/w network and 
-		 host byte order, was so much easier in JAVA !!*/
-	server->sin_port = htons(port_num);
-	
-	if(bind(socket_fd, (struct sockaddr *)server, sizeof(struct sockaddr_in)) < 0)
+	//Get IP adderss of connection
+	char ip[100];
+	printf("Enter connection IP : ");
+	scanf("%s", &ip);
+	server.sin_family = AF_INET;
+	server.sin_addr.s_addr = inet_addr(ip);
+	server.sin_port = htons(port_num);
+
+	if(bind(socket_fd, (struct sockaddr *)&server, sizeof(struct sockaddr_in)) < 0)
 		cleanup_error("BINDING ERROR\n");
 
-	listen(socket_fd,4);
-	client = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
-	clilen = sizeof(client);
-
-  if((*accept_socket_fd = accept(socket_fd, 
-                 								(struct sockaddr *)client, 
-                 								&clilen)) < 0)
+	listen(socket_fd, 4);
+	
+	clilen = sizeof(struct sockaddr_in);
+	client_sock = accept(socket_fd, (struct sockaddr *)&client, (socklen_t*)&clilen);
+	char client_msg[1024];
+  	if(client_sock < 0)
  		cleanup_error("ERROR in accepting\n");
+ 	else{
+ 		bzero(client_msg, 1024);
+ 		while((read_size = read(client_sock, client_msg, 1024)) > 0){
+ 			//exec_command(client_msg);
+ 		}
+ 	}
+
 	return 0;
 }
 
 void tokenize(char arr[], char *brr[])
 {
 	const char delim[2] = " ";
-  char *token;
-  token = strtok(arr, delim);
-  short i = 0;
-  while( token != NULL ) 
-  {
+	char *token;
+	token = strtok(arr, delim);
+	short i = 0;
+	while( token != NULL ) 
+	{
 		brr[i++] = token;
-    token = strtok(NULL, delim);
-  }
+	token = strtok(NULL, delim);
+	}
 }
 
 int exec_command(char *argv[], int outstream)
@@ -90,9 +97,9 @@ int exec_command(char *argv[], int outstream)
 		dup2(outstream, 1);
 		dup2(outstream, 2);
 		execv(argv[0], argv);
-    execv(strcat(path1, argv[0]), argv);
-   	execv(strcat(path2, argv[0]), argv);
-    fprintf(stderr, "exec %s failed\n", argv[0]);
+	    execv(strcat(path1, argv[0]), argv);
+	   	execv(strcat(path2, argv[0]), argv);
+	    fprintf(stderr, "exec %s failed\n", argv[0]);
 	}
 	return FAIL_ERR;
 }
@@ -106,11 +113,11 @@ int start_server(int accept_fd)
 	while(1){
 		printf("hello\n");
 		if((read_code = read(accept_fd,buffer,255)) < 0)
-     	cleanup_error("ERROR Reading\n");
-    tokenize(buffer, argv);
-   	exec_command(argv, accept_fd);
-  }
-  return FAIL_ERR;
+     		cleanup_error("ERROR Reading\n");
+	    tokenize(buffer, argv);
+	   	exec_command(argv, accept_fd);
+  	}
+  	return FAIL_ERR;
 }
 
 int main(int argc, char *argv[])
@@ -121,7 +128,10 @@ int main(int argc, char *argv[])
 	}
 	int accept_fd;
 	if(server_init(argv[1], &accept_fd) < 0)
-		printf("%SERVER CANNOT START\n");
+		printf("SERVER CANNOT START\n");
 	start_server(accept_fd);
 	return 0;
 }
+
+
+/*References: http://www.binarytides.com/server-client-example-c-sockets-linux/*/

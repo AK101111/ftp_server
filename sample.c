@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int tokenize(char *cmd, char tokens[2][256]){
+int tokenize(char *cmd, char tokens[10][256]){
      char *token;
      int NUM_TOKENS = 0;
      token = strtok(cmd, " ");
@@ -23,12 +23,13 @@ int tokenize(char *cmd, char tokens[2][256]){
 
 void start_interface(){
 	char arg[1024];
-	char tokens[2][256];
+	char tokens[10][256];
+	int num_tokens;
 	while (1){
 		printf("Command My lord : ");
 		bzero(arg, sizeof(arg));
 		fgets(arg, sizeof(arg), stdin);
-		tokenize(arg, tokens);
+		num_tokens = tokenize(arg, tokens);
 		if (strcmp(tokens[0], "lls") == 0){
 			system("ls");
 		}
@@ -49,6 +50,24 @@ void start_interface(){
 					system("pwd");
 				}
 			}
+		}
+		else if (strcmp(tokens[0], "lchmod") == 0){
+			char s[1024] = "chmod";
+			//s = strcat(tokens[0], tokens);
+			//printf("%s\n", s);
+			int iter = 1;
+			char *tkns;
+			tkns = tokens[iter];
+			while(iter < num_tokens){
+				strcat(s, " ");
+				strcat(s, tkns);
+				iter++;
+				tkns = tokens[iter];
+			}
+			system(s);
+		}
+		else{
+			system(arg);
 		}
 	}
 }

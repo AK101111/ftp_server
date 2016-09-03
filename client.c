@@ -6,7 +6,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int tokenize(char *cmd, char tokens[2][256]){
+#define BUFFER_LEN 512
+
+int tokenize(char *cmd, char tokens[10][256]){
      char *token;
      int NUM_TOKENS = 0;
      token = strtok(cmd, " ");
@@ -23,14 +25,15 @@ int tokenize(char *cmd, char tokens[2][256]){
      return NUM_TOKENS;
 }
 
-void start_interface(){
+void start_interface(int sock){
 	char arg[1024];
-	char tokens[2][256];
+	char tokens[10][256];
+	int num_tokens;
 	while (1){
 		printf("Command My lord : ");
 		bzero(arg, sizeof(arg));
 		fgets(arg, sizeof(arg), stdin);
-		tokenize(arg, tokens);
+		num_tokens = tokenize(arg, tokens);
 		if (strcmp(tokens[0], "lls") == 0){
 			system("ls");
 		}
@@ -52,48 +55,71 @@ void start_interface(){
 				}
 			}
 		}
-		else if (strcmp(arg, "lchmod")){
-			system()
+		else if (strcmp(tokens[0], "lchmod") == 0){
+			char s[1024] = "chmod";
+			int iter = 1;
+			char *tkns;
+			tkns = tokens[iter];
+			//collecting all arguments to one string s n then running system command
+			while(iter < num_tokens){
+				strcat(s, " ");
+				strcat(s, tkns);
+				iter++;
+				tkns = tokens[iter];
+			}
+			system(s);
 		}
-		else if (strcmp(arg, "ls")){
+		else if (strcmp(tokens[0], "ls") == 0 || strcmp(tokens[0], "cd") == 0 || strcmp(tokens[0], "chmod") == 0){
+			//Send the command to control port
+			if( send(sock , arg , strlen(arg) , 0) < 0)
+	        {
+	            puts("Send failed");
+	            return;
+	        }
+	        //Receive reply from the server
+	        char reply[1024];
+	        if( recv(sock , reply , 1024 , 0) < 0)
+	        {
+	            puts("recv failed");
+	            break;
+	        }
+	        else{
+	        	printf("%s\n", reply);
+	        }
+		}
+		else if (strcmp(tokens[0], "get")){
+			
+		}
+		else if (strcmp(tokens[0], "put")){
 
 		}
-		else if (strcmp(arg, "cd")){
-
-		}
-		else if (strcmp(arg, "chmod")){
-
-		}
-		else if (strcmp(arg, "get")){
-
-		}
-		else if (strcmp(arg, "put")){
-
-		}
-		else if (strcmp(arg, "close")){
-
+		else if (strcmp(tokens[0], "close")){
+			close(sock);
+			printf("Socket closed. Connection terminated\n");
 		}
 		else{
-
+			system(arg);
 		}
 	}
 }
 
-void start_socket(int sktp){
-	int sock, socket_port = sktp;
-	struct sockaddr_in serveraddr;
+void start_control_socket(int socket_port, char * ip){
+	int sock;
+	struct sockaddr_in servaddr;
 	//Socket Creation
 	sock= socket(AF_INET, SOCK_STREAM, 0);
 	if (sock < 0){
-		printf("Socket Creation Failed");
+		printf("Socket Creation Failed\n");
 		exit(0);
 	}
 	else{
-		printf("Socket Created");
+		printf("Socket Created\n");
 	}
 	servaddr.sin_family = AF_INET;
-	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	printf("%s\n", ip);
+	servaddr.sin_addr.s_addr = inet_addr(ip);
 	servaddr.sin_port = htons(socket_port);
+
 	//Attempting to connect The socket
 	if(connect(sock,(struct sockaddr *)&servaddr, sizeof(servaddr))<0){
 		printf("Connection Error\n");
@@ -101,17 +127,27 @@ void start_socket(int sktp){
 	}
 	else{
 		printf("Connected\n");
-		start_interface();
+		start_interface(sock);
 	}
 }
 
 int main(int argc, char** argv){
 	
-	int socket_port;
+	if(argc < 2){
+		printf("provide port no. followed by ip\n");
+		return -1;
+	}
+	int data_socket_port;
+	int control_socket_port;
+	char * con_ip = argv[2];
 	//Port No.
-	printf("Type the socket port : ");
-	scanf("%d", &socket_port);
-	start_socket(socket_port);
+	control_socket_port = atoi(argv[1]);
+
+	/*printf("Type the control socket port number : ");
+	scanf("%d", &control_socket_port);*/
+	/*printf("Type the data socket port number : ");
+	scanf("%d", &data_socket_port);*/
+	start_control_socket(control_socket_port, con_ip);
 }
 
 //Refrence : http://mcalabprogram.blogspot.in/2012/01/ftp-sockets-server-client-using-c.html
