@@ -75,8 +75,8 @@ void start_interface(int sock, char ip[], int data_socket_port){
 	            return;
 	        }
 	        //Receive reply from the server
-	        char reply[1024];
-	        if( recv(sock , reply , 1024 , 0) < 0)
+	        char reply[2000];
+	        if( recv(sock , reply , 1000 , 0) < 0)
 	        {
 	            printf("recv failed");
 	            break;
@@ -86,23 +86,29 @@ void start_interface(int sock, char ip[], int data_socket_port){
 	        }
 		}
 		else if (strcmp(tokens[0], "get") == 0){
-			int conformation =start_data_socket(data_socket_port, tokens[1], ip, 1);
-			if (conformation)
+			int data_sock =start_data_socket(data_socket_port, ip);
+			if (data_sock){
+				/*if(connect(sock,(struct sockaddr *)&server_addr, sizeof(server_addr))<0){
+					printf("Connection Error\n");
+					return -1;
+				}*/
+				//connect();
+				receive_file(tokens[1], data_sock);
 				printf("File Received\n");
+			}
 			else
 				printf("File Not Received\n");
 		}
 		else if (strcmp(tokens[0], "put") == 0){
 			//check if tokens[1] is filename
-			int conformation = start_data_socket(data_socket_port, tokens[1], ip, 0);
-			//data_socket_send("filename")
-			//display conformation
-			if (conformation){
-				printf("File sent to server\n");
+			int data_sock =start_data_socket(data_socket_port, ip);
+			if (data_sock){
+				//connect();
+				send_file(tokens[1], data_sock);
+				printf("File Received\n");
 			}
-			else{
-				printf("File not sent\n");
-			}
+			else
+				printf("File Not Received\n");
 		}
 		else if (strcmp(tokens[0], "close") == 0){
 			close(sock);

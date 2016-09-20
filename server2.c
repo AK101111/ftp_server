@@ -15,6 +15,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <dirent.h>
+#include "data_socket.h"
 
 #define DEBUG
 #define FAIL_ERR 1
@@ -45,49 +46,40 @@ void tokenize(char arr[], char *brr[])
     }
 }
 
-int exec_command(char message[], int outstream,char *argv[], char * ip, int data_sock)
+int exec_command(char message[], char output[],char *argv[])
 {
-    //pid_t pid;
-    //printf("first is %s\n",argv[0]);
-    //char path1[100] = "/bin/";
-    //char path2[100] = "/usr/bin/";
-    //if ((pid = fork()) < 0)
-       // cleanup_error("SERVER ERROR\n");
-    //if(pid == 0){
-        dup2(outstream, 1);
-        dup2(outstream, 2);
-        if(!strcmp(argv[0],"cd")){
-            char current_dir[1024];
-            getcwd(current_dir, sizeof(current_dir));
-            if(argv[1])
-                chdir(argv[1]);
-            char new_dir[1024];
-            getcwd(new_dir, sizeof(new_dir));
-            if(strcmp(current_dir, new_dir) == 0){
-                printf("No Such Directory\n");
-            }
-            else{
-                system("pwd");
-            }
-            //if(argv)
-                //free(argv);
-            return 0;
-        }
-        else if(!strcmp(argv[0], "get")){
-            send_file(argv[1], data_sock);
-        }
-        else if(!strcmp(argv[0], "put")){
-            send_file(argv[1], data_sock);
+    char current_dir[1024];
+    getcwd(current_dir, sizeof(current_dir));
+    if(!strcmp(argv[0],"cd")){
+        if(argv[1])
+            chdir(argv[1]);
+        char new_dir[1024];
+        getcwd(new_dir, sizeof(new_dir));
+        if(strcmp(current_dir, new_dir) == 0){
+            printf("No Such Directory\n");
         }
         else{
-            system(message);
+            system("pwd");
         }
-        //fprintf(stderr, "exec %s failed\n", argv[0]);
-    //}
+        output = new_dir;
+        return 0;
+    }else if (!strcmp(argv[0], "ls")){
+        //system(message);
+        DIR* d = opendir(current_dir);
+        if (d == NULL) return EXIT_FAILURE;
+
+        struct dirent *de = NULL;
+        //output = '';
+        while((de = readdir(d)) != NULL){ 
+            output = strcat(output, de->d_name);
+        }
+        //printf("%s/%s\n", current_dir, de->d_name);
+        printf("In %s\n", output);
+    }
     return FAIL_ERR;
 }
 
-int server_init(char* port_number, int *accept_socket_fd, char * ips, char* data_socket_)
+int server_init(char* port_number, int *accept_socket_fd, char * ips)
 {
 	int socket_fd, client_sock, read_size;
 	struct sockaddr_in server, client;
@@ -96,7 +88,6 @@ int server_init(char* port_number, int *accept_socket_fd, char * ips, char* data
 
 	socklen_t clilen;
 	int port_num = PARSE_INT(port_number);
-    int data_socket_port = PARSE_INT(data_socket_);
 	/*AF_UNIX for unix, AF_INET for net.*/
 	if((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		cleanup_error("CANNOT OPEN SOCKET\n");
@@ -110,7 +101,6 @@ int server_init(char* port_number, int *accept_socket_fd, char * ips, char* data
 		cleanup_error("BINDING ERROR\n");
 
 	listen(socket_fd, 4);
-    int data_sock = start_data_socket(data_socket_port, ips);
 	
 	clilen = sizeof(struct sockaddr_in);
 	client_sock = accept(socket_fd, (struct sockaddr *)&client, (socklen_t*)&clilen);
@@ -120,14 +110,43 @@ int server_init(char* port_number, int *accept_socket_fd, char * ips, char* data
  	else{
  		bzero(client_msg, 1024);
  		while((read_size = read(client_sock, client_msg, 1024)) > 0){
-/*<<<<<<< HEAD
- 			exec_command(client_msg);
-=======*/
             client_msg[strlen(client_msg)-1] = '\0';
-            //if(client_msg[strlen(client_msg)-1] == '\n')
             char *argr[1024];
             tokenize(client_msg,argr);
-            exec_command(client_msg,client_sock,argr, ips, data_sock);    
+
+            //int data_sock = start_data_socket(port_number, ips);
+            char output[] = "";
+            // EXEC Command ---------------------------------
+            char current_dir[1024];
+            getcwd(current_dir, sizeof(current_dir));
+            if(!strcmp(argr[0],"cd")){
+                if(argr[1])
+                    chdir(argr[1]);
+                char new_dir[1024];
+                getcwd(new_dir, sizeof(new_dir));
+                if(strcmp(current_dir, new_dir) == 0){
+                    printf("No Such Directory\n");
+                }
+                else{
+                    system("pwd");
+                }
+                strcat(output, new_dir);
+            }else if (!strcmp(argr[0], "ls")){
+                //system(message);
+                DIR* d = opendir(".");
+                if (d == NULL) return EXIT_FAILURE;
+
+                struct dirent *de;
+                while((de = readdir(d)) != NULL){
+                    printf ("%s %s\n", current_dir, de->d_name);
+                    strcat(output, de->d_name);
+                    strcat(output, "\n");
+                }
+                closedir(d);
+                //printf("%s/%s\n", current_dir, de->d_name);                
+            }
+
+            if (send(client_sock, output, strlen(output), 0)) printf("Served \n");
  		}
  	}
 	return 0;
@@ -153,12 +172,12 @@ int start_server(int accept_fd)
 int main(int argc, char *argv[])
 {	
 	if(argc < 2){
-		printf("usage: ./a.out port_number ip data_socket_port\n");
+		printf("usage: ./a.out port_number ip max_threads\n");
 		return 0;
 	}
 	int accept_fd;
 	char * connection_ip = argv[2];
-	if(server_init(argv[1], &accept_fd, connection_ip, argv[3]) < 0)
+	if(server_init(argv[1], &accept_fd, connection_ip) < 0)
 		printf("SERVER CANNOT START\n");
 	//start_server(accept_fd);
 	return 0;
