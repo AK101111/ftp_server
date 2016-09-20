@@ -2,5 +2,4 @@ a.out
 client
 client.o
 Nothing.txt
-data_socket.c
 control_socket.c
