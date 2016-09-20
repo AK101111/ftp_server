@@ -75,8 +75,8 @@ void start_interface(int sock, char ip[], int data_socket_port){
 	            return;
 	        }
 	        //Receive reply from the server
-	        char reply[100];
-	        if( recv(sock , reply , 100 , 0) < 0)
+	        char reply[2000];
+	        if( recv(sock , reply , 1000 , 0) < 0)
 	        {
 	            printf("recv failed");
 	            break;

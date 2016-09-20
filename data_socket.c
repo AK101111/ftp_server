@@ -11,7 +11,7 @@ int send_file(char filename[], int socket){
 	file = fopen(filename, "r");
 	if (file == NULL){
 		printf("Unable to open your file\n");
-		return;
+		return -1;
 	}
 	char buff[256] = {0};
 	int read;
@@ -37,7 +37,7 @@ int receive_file(char filename[], int sock){
 	file = fopen(filename,"w+");
 	if(file ==  NULL){
 		printf("Unable to open your file\n");
-		return;
+		return -1;
 	}
 	char buff[256] = {0};
 	//memset(buff,'0',sizeof(buff));

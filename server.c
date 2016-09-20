@@ -31,6 +31,59 @@ void cleanup_error(char *error)
 	exit(FAIL_ERR);
 }
 #endif
+void tokenize(char arr[], char *brr[])
+{
+    const char delim[2] = " ";
+    char *token;
+    token = strtok(arr, delim);
+    short i = 0;
+    while( token != NULL )
+    {
+        brr[i++] = token;
+        token = strtok(NULL, delim);
+    }
+}
+
+int exec_command(char message[], int outstream,char *argv[])
+{
+    //pid_t pid;
+    //printf("first is %s\n",argv[0]);
+    //char path1[100] = "/bin/";
+    //char path2[100] = "/usr/bin/";
+    //if ((pid = fork()) < 0)
+       // cleanup_error("SERVER ERROR\n");
+    //if(pid == 0){
+        dup2(outstream, 1);
+        dup2(outstream, 2);
+        if(!strcmp(argv[0],"cd")){
+            char current_dir[1024];
+            getcwd(current_dir, sizeof(current_dir));
+            if(argv[1])
+                chdir(argv[1]);
+            char new_dir[1024];
+            getcwd(new_dir, sizeof(new_dir));
+            if(strcmp(current_dir, new_dir) == 0){
+                printf("No Such Directory\n");
+            }
+            else{
+                system("pwd");
+            }
+            //if(argv)
+                //free(argv);
+            return 0;
+        }else{
+            system(message);
+            //if(argv)
+              //  free(argv);
+            //printf("heh\n");
+            //execv(argv[0], argv);
+            //execv(strcat(path1, argv[0]), argv);
+            //execv(strcat(path2, argv[0]), argv);
+        }
+        //fprintf(stderr, "exec %s failed\n", argv[0]);
+    //}
+    return FAIL_ERR;
+}
 
 int server_init(char* port_number, int *accept_socket_fd, char * ips)
 {
@@ -63,43 +116,16 @@ int server_init(char* port_number, int *accept_socket_fd, char * ips)
  	else{
  		bzero(client_msg, 1024);
  		while((read_size = read(client_sock, client_msg, 1024)) > 0){
- 			exec_command(client_msg)
+            client_msg[strlen(client_msg)-1] = '\0';
+            //if(client_msg[strlen(client_msg)-1] == '\n')
+            char *argr[100];
+            tokenize(client_msg,argr);
+            exec_command(client_msg,client_sock,argr);
  		}
  	}
-
 	return 0;
 }
 
-void tokenize(char arr[], char *brr[])
-{
-	const char delim[2] = " ";
-	char *token;
-	token = strtok(arr, delim);
-	short i = 0;
-	while( token != NULL ) 
-	{
-		brr[i++] = token;
-	token = strtok(NULL, delim);
-	}
-}
-
-int exec_command(char *argv[], int outstream)
-{
-	pid_t pid;
-	char path1[100] = "/bin/";
-	char path2[100] = "/usr/bin/";
-	if ((pid = fork()) < 0)
-		cleanup_error("SERVER ERROR\n");
-	if(pid == 0){
-		dup2(outstream, 1);
-		dup2(outstream, 2);
-		execv(argv[0], argv);
-	    execv(strcat(path1, argv[0]), argv);
-	   	execv(strcat(path2, argv[0]), argv);
-	    fprintf(stderr, "exec %s failed\n", argv[0]);
-	}
-	return FAIL_ERR;
-}
 
 int start_server(int accept_fd)
 {
@@ -112,7 +138,7 @@ int start_server(int accept_fd)
 		if((read_code = read(accept_fd,buffer,255)) < 0)
      		cleanup_error("ERROR Reading\n");
 	    tokenize(buffer, argv);
-	   	exec_command(argv, accept_fd);
+	   	//exec_command(argv, accept_fd);
   	}
   	return FAIL_ERR;
 }
