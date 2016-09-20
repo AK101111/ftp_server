@@ -32,7 +32,7 @@ void cleanup_error(char *error)
 }
 #endif
 
-int server_init(char* port_number, int *accept_socket_fd)
+int server_init(char* port_number, int *accept_socket_fd, char * ips)
 {
 	int socket_fd, client_sock, read_size;
 	struct sockaddr_in server, client;
@@ -48,7 +48,7 @@ int server_init(char* port_number, int *accept_socket_fd)
 	//Get IP adderss of connection
 	char ip[100];
 	printf("Enter connection IP : ");
-	scanf("%s", &ip);
+	scanf("%s", ip);
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = inet_addr(ip);
 	server.sin_port = htons(port_num);
@@ -66,7 +66,7 @@ int server_init(char* port_number, int *accept_socket_fd)
  	else{
  		bzero(client_msg, 1024);
  		while((read_size = read(client_sock, client_msg, 1024)) > 0){
- 			//exec_command(client_msg);
+ 			//exec_command(client_msg)
  		}
  	}
 
@@ -127,7 +127,8 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	int accept_fd;
-	if(server_init(argv[1], &accept_fd) < 0)
+	char * connection_ip = argv[2];
+	if(server_init(argv[1], &accept_fd, connection_ip) < 0)
 		printf("SERVER CANNOT START\n");
 	start_server(accept_fd);
 	return 0;

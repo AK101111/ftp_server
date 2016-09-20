@@ -1,15 +1,13 @@
 //FTP Client
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "data_socket.c"
 
 #define BUFFER_LEN 512
 
-int tokenize(char *cmd, char tokens[10][256]){
+int tokenize(char *command, char tokens[10][256]){
      char *token;
+     char cmd[1024];
+     strcpy(cmd, command);
      int NUM_TOKENS = 0;
      token = strtok(cmd, " ");
 
@@ -25,7 +23,7 @@ int tokenize(char *cmd, char tokens[10][256]){
      return NUM_TOKENS;
 }
 
-void start_interface(int sock){
+void start_interface(int sock, char ip[], int data_socket_port){
 	char arg[1024];
 	char tokens[10][256];
 	int num_tokens;
@@ -73,29 +71,43 @@ void start_interface(int sock){
 			//Send the command to control port
 			if( send(sock , arg , strlen(arg) , 0) < 0)
 	        {
-	            puts("Send failed");
+	            printf("Send failed");
 	            return;
 	        }
 	        //Receive reply from the server
-	        char reply[1024];
-	        if( recv(sock , reply , 1024 , 0) < 0)
+	        char reply[100];
+	        if( recv(sock , reply , 100 , 0) < 0)
 	        {
-	            puts("recv failed");
+	            printf("recv failed");
 	            break;
 	        }
 	        else{
 	        	printf("%s\n", reply);
 	        }
 		}
-		else if (strcmp(tokens[0], "get")){
-			
+		else if (strcmp(tokens[0], "get") == 0){
+			int conformation =start_data_socket(data_socket_port, tokens[1], ip, 1);
+			if (conformation)
+				printf("File Received\n");
+			else
+				printf("File Not Received\n");
 		}
-		else if (strcmp(tokens[0], "put")){
-
+		else if (strcmp(tokens[0], "put") == 0){
+			//check if tokens[1] is filename
+			int conformation = start_data_socket(data_socket_port, tokens[1], ip, 0);
+			//data_socket_send("filename")
+			//display conformation
+			if (conformation){
+				printf("File sent to server\n");
+			}
+			else{
+				printf("File not sent\n");
+			}
 		}
-		else if (strcmp(tokens[0], "close")){
+		else if (strcmp(tokens[0], "close") == 0){
 			close(sock);
 			printf("Socket closed. Connection terminated\n");
+			exit(0);
 		}
 		else{
 			system(arg);
@@ -103,20 +115,19 @@ void start_interface(int sock){
 	}
 }
 
-void start_control_socket(int socket_port, char * ip){
+void start_control_socket(int socket_port, char * ip, int data_socket_port){
 	int sock;
 	struct sockaddr_in servaddr;
 	//Socket Creation
 	sock= socket(AF_INET, SOCK_STREAM, 0);
 	if (sock < 0){
-		printf("Socket Creation Failed\n");
+		printf("Control Socket Creation Failed\n");
 		exit(0);
 	}
 	else{
-		printf("Socket Created\n");
+		printf("Control Socket Created\n");
 	}
-	servaddr.sin_family = AF_INET;
-	printf("%s\n", ip);
+	servaddr.sin_family = AF_INET;	
 	servaddr.sin_addr.s_addr = inet_addr(ip);
 	servaddr.sin_port = htons(socket_port);
 
@@ -127,14 +138,14 @@ void start_control_socket(int socket_port, char * ip){
 	}
 	else{
 		printf("Connected\n");
-		start_interface(sock);
+		start_interface(sock, ip, data_socket_port);
 	}
 }
 
 int main(int argc, char** argv){
 	
 	if(argc < 2){
-		printf("provide port no. followed by ip\n");
+		printf("a.out control_socket control_ip data_socket\n");
 		return -1;
 	}
 	int data_socket_port;
@@ -142,12 +153,9 @@ int main(int argc, char** argv){
 	char * con_ip = argv[2];
 	//Port No.
 	control_socket_port = atoi(argv[1]);
-
-	/*printf("Type the control socket port number : ");
-	scanf("%d", &control_socket_port);*/
-	/*printf("Type the data socket port number : ");
-	scanf("%d", &data_socket_port);*/
-	start_control_socket(control_socket_port, con_ip);
+	data_socket_port = atoi(argv[3]);
+	start_control_socket(control_socket_port, con_ip, data_socket_port);
+	return 0;
 }
 
 //Refrence : http://mcalabprogram.blogspot.in/2012/01/ftp-sockets-server-client-using-c.html
