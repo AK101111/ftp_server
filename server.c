@@ -46,11 +46,8 @@ int server_init(char* port_number, int *accept_socket_fd, char * ips)
 		cleanup_error("CANNOT OPEN SOCKET\n");
 	
 	//Get IP adderss of connection
-	char ip[100];
-	printf("Enter connection IP : ");
-	scanf("%s", ip);
 	server.sin_family = AF_INET;
-	server.sin_addr.s_addr = inet_addr(ip);
+	server.sin_addr.s_addr = inet_addr(ips);
 	server.sin_port = htons(port_num);
 
 	if(bind(socket_fd, (struct sockaddr *)&server, sizeof(struct sockaddr_in)) < 0)
@@ -66,7 +63,7 @@ int server_init(char* port_number, int *accept_socket_fd, char * ips)
  	else{
  		bzero(client_msg, 1024);
  		while((read_size = read(client_sock, client_msg, 1024)) > 0){
- 			//exec_command(client_msg)
+ 			exec_command(client_msg)
  		}
  	}
 
@@ -123,14 +120,14 @@ int start_server(int accept_fd)
 int main(int argc, char *argv[])
 {	
 	if(argc < 2){
-		printf("usage: ./a.out port_number max_threads\n");
+		printf("usage: ./a.out port_number ip max_threads\n");
 		return 0;
 	}
 	int accept_fd;
 	char * connection_ip = argv[2];
 	if(server_init(argv[1], &accept_fd, connection_ip) < 0)
 		printf("SERVER CANNOT START\n");
-	start_server(accept_fd);
+	//start_server(accept_fd);
 	return 0;
 }
 
