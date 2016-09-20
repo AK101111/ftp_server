@@ -63,7 +63,7 @@ int server_init(char* port_number, int *accept_socket_fd, char * ips)
  	else{
  		bzero(client_msg, 1024);
  		while((read_size = read(client_sock, client_msg, 1024)) > 0){
- 			exec_command(client_msg)
+ 			exec_command(client_msg);
  		}
  	}
 

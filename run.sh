@@ -1,4 +1,2 @@
-gcc -w server.c
-mv a.out server.out
-gcc -w client.c
-mv a.out client.out
+gcc -o server server.c -w
+gcc -o client client.c -w

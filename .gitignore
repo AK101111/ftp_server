@@ -1,5 +1,7 @@
 a.out
+server
 client
 client.o
 Nothing.txt
 control_socket.c
+run.sh

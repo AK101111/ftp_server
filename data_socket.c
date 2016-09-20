@@ -11,7 +11,7 @@ int send_file(char filename[], int socket){
 	file = fopen(filename, "r");
 	if (file == NULL){
 		printf("Unable to open your file\n");
-		return;
+		return 0;
 	}
 	char buff[256] = {0};
 	int read;
@@ -29,7 +29,7 @@ int send_file(char filename[], int socket){
 		}
 	}
 	close(client_fd);
-	return 0;
+	return 1;
 }
 
 int receive_file(char filename[], int sock){
@@ -37,7 +37,7 @@ int receive_file(char filename[], int sock){
 	file = fopen(filename,"w+");
 	if(file ==  NULL){
 		printf("Unable to open your file\n");
-		return;
+		return 0;
 	}
 	char buff[256] = {0};
 	//memset(buff,'0',sizeof(buff));
@@ -55,7 +55,7 @@ int receive_file(char filename[], int sock){
 	return 1;
 }
 
-//flag = 0 : send file; = 1 : receive file
+//flag = 0 : send file: = 1 : receive file
 int start_data_socket(int socket_port, char filename[], char * ip, int flag){
 		int sock, client_fd;
 		struct sockaddr_in server_addr;
@@ -80,14 +80,10 @@ int start_data_socket(int socket_port, char filename[], char * ip, int flag){
 		else{
 			printf("Connected\n");
 			if(flag == 0)
-				send_file(filename, sock);
+				return send_file(filename, sock);
 			else
-				receive_file(filename, sock);
+				return receive_file(filename, sock);
 		}
 }
-
-/*int main(){
-	return 0;
-}*/
 
 /*References : http://codereview.stackexchange.com/questions/43914/client-server-implementation-in-c-sending-data-files*/
